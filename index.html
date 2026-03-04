@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>スピキ時計</title>
+<style>
+body{
+  margin:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  background:#dda0dd;
+  color:white;
+  font-family:sans-serif;
+  flex-direction:column;
+}
+
+.clock{
+  width:300px;
+  height:300px;
+  border:8px solid white;
+  border-radius:50%;
+  position:relative;
+  margin-top:20px;
+}
+
+.hand{
+  position:absolute;
+  bottom:50%;
+  left:50%;
+  transform-origin:bottom;
+  transform:translateX(-50%) rotate(0deg);
+}
+
+.hour{width:6px;height:70px;background:white;}
+.minute{width:4px;height:100px;background:white;}
+.second{width:2px;height:120px;background:red;}
+
+.center{
+  width:12px;height:12px;
+  background:white;
+  border-radius:50%;
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+}
+
+.controls{
+  text-align:center;
+}
+
+button{
+  margin:5px;
+  padding:5px 10px;
+  cursor:pointer;
+}
+
+.tick {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform-origin: center;
+}
+
+h1 {
+text-align: center;
+}
+
+</style>
+</head>
+<body>
+<h1>スピキ時計</h1>
+<div class="controls">
+  <input type="time" id="alarmTime">
+  <button onclick="setAlarm()">アラーム設定</button>
+  <button onclick="stopAlarm()">停止</button>
+  <p id="alarmStatus"></p>
+</div>
+
+<div class="clock">
+  <div id="ticks"></div>
+  <div class="hand hour" id="hour"></div>
+  <div class="hand minute" id="minute"></div>
+  <div class="hand second" id="second"></div>
+  <div class="center"></div>
+</div>
+
+<audio id="secSound" src="sec.mp3"></audio>
+<audio id="minSound" src="min.mp3"></audio>
+<audio id="hourSound" src="hour.mp3"></audio>
+<audio id="alarmSound" src="alarm.mp3" loop></audio>
+<div></div>
+<img src="supi.jpg" alt="スピキ" width="300" height="200">
+<script>
+// 5分ごとの目盛り生成
+const ticksContainer = document.getElementById("ticks");
+
+for(let i = 0; i < 12; i++){
+  const tick = document.createElement("div");
+  tick.className = "tick";
+
+  const angle = i * 30; // 360/12
+  const radius = 130;   // 円の外側位置
+
+  tick.style.transform =
+    `translate(-50%, -50%)
+     rotate(${angle}deg)
+     translateY(-${radius}px)`;
+
+  ticksContainer.appendChild(tick);
+}
+const hourHand = document.getElementById("hour");
+const minuteHand = document.getElementById("minute");
+const secondHand = document.getElementById("second");
+
+const secSound = document.getElementById("secSound");
+const minSound = document.getElementById("minSound");
+const hourSound = document.getElementById("hourSound");
+const alarmSound = document.getElementById("alarmSound");
+
+let lastSecond = -1;
+let alarmTime = null;
+let alarmActive = false;
+
+function setAlarm(){
+  const input = document.getElementById("alarmTime").value;
+  if(input){
+    alarmTime = input;
+    alarmActive = true;
+    document.getElementById("alarmStatus").textContent =
+      "アラーム設定: " + alarmTime;
+  }
+}
+
+function stopAlarm(){
+  alarmSound.pause();
+  alarmSound.currentTime = 0;
+  alarmActive = false;
+  document.getElementById("alarmStatus").textContent =
+    "アラーム停止";
+}
+
+function updateClock(){
+  const now = new Date();
+  const seconds = now.getSeconds();
+  const minutes = now.getMinutes();
+  const hours = now.getHours();
+
+  const secondDeg = seconds * 6;
+  const minuteDeg = minutes * 6 + seconds * 0.1;
+  const hourDeg = (hours % 12) * 30 + minutes * 0.5;
+
+  secondHand.style.transform =
+    `translateX(-50%) rotate(${secondDeg}deg)`;
+  minuteHand.style.transform =
+    `translateX(-50%) rotate(${minuteDeg}deg)`;
+  hourHand.style.transform =
+    `translateX(-50%) rotate(${hourDeg}deg)`;
+
+  if(alarmSound.paused === false){
+    return;
+     }
+
+  if(seconds !== lastSecond){
+    lastSecond = seconds;
+
+    secSound.currentTime = 0;
+    secSound.play().catch(()=>{});
+
+    if(seconds === 0){
+      minSound.currentTime = 0;
+      minSound.play().catch(()=>{});
+    }
+
+    if(seconds === 0 && minutes === 0){
+      hourSound.currentTime = 0;
+      hourSound.play().catch(()=>{});
+    }
+
+    const currentTime =
+      hours.toString().padStart(2,'0') + ":" +
+      minutes.toString().padStart(2,'0');
+
+    if(alarmActive &&
+       currentTime === alarmTime &&
+       seconds === 0){
+      alarmSound.play().catch(()=>{});
+    }
+  if(alarmSound.paused === false){
+    return;
+     }
+  }
+}
+
+document.body.addEventListener("click", () => {
+  secSound.play().catch(()=>{});
+}, { once:true });
+
+setInterval(updateClock, 100);
+updateClock();
+
+</script>
+</body>
+</html>
